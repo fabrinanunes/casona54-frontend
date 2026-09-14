@@ -1,14 +1,47 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./Login.css";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  useEffect(() => {
+    const checkSession = async () => {
+      const response = await fetch("http://localhost:8080/me", {
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        const user = await response.json();
+
+        console.log("Usuário logado:", user);
+      }
+    };
+
+    checkSession();
+  }, []);
+
   const handleLogin = async (event: React.FormEvent) => {
     event?.preventDefault();
 
-    console.log("Email:", email, "Password:", password);
+    try {
+      const response = await fetch("http://localhost:8080/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Usuário ou senhha incorretos.");
+      }
+
+      console.log("Login realizado com sucesso");
+    } catch (error) {
+      console.error("Erro ao realizar login:", error);
+    }
   };
 
   return (
@@ -28,8 +61,8 @@ function Login() {
 
             <input
               id="email"
-              type="email"
-              placeholder="nosso-lar"
+              type="text"
+              placeholder="admin"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
             />
