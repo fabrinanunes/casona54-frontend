@@ -1,25 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import "./Login.css";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  useEffect(() => {
-    const checkSession = async () => {
-      const response = await fetch("http://localhost:8080/me", {
-        credentials: "include",
-      });
-
-      if (response.ok) {
-        const user = await response.json();
-
-        console.log("Usuário logado:", user);
-      }
-    };
-
-    checkSession();
-  }, []);
 
   const handleLogin = async (event: React.FormEvent) => {
     event?.preventDefault();
