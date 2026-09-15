@@ -10,7 +10,7 @@ function App() {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const response = await fetch("http://localhost:8080/check-session", {
+        const response = await fetch("http://localhost:8080/me", {
           credentials: "include",
         });
 
@@ -30,10 +30,10 @@ function App() {
   }
 
   if (isAuthenticated) {
-    return <Dashboard/>;
+    return <Dashboard />;
   }
 
-  return <Login />;
+  return <Login onLogin={() => setIsAuthenticated(true)} />;
 }
 
 export default App;

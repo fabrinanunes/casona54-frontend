@@ -1,12 +1,16 @@
 import { useState } from "react";
 import "./Login.css";
 
-function Login() {
+type LoginProps = {
+  onLogin: () => void;
+};
+
+function Login({ onLogin }: LoginProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const handleLogin = async (event: React.FormEvent) => {
-    event?.preventDefault();
+    event.preventDefault();
 
     try {
       const response = await fetch("http://localhost:8080/login", {
@@ -22,7 +26,7 @@ function Login() {
         throw new Error("Usuário ou senhha incorretos.");
       }
 
-      console.log("Login realizado com sucesso");
+      onLogin();
     } catch (error) {
       console.error("Erro ao realizar login:", error);
     }
