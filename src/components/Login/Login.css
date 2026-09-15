@@ -90,3 +90,9 @@
   color: #858c99;
   font-size: 11px;
 }
+
+.login__error {
+  margin: 0;
+  color: #c2410c;
+  font-size: 12px;
+}

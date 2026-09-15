@@ -30,7 +30,18 @@ function App() {
   }
 
   if (isAuthenticated) {
-    return <Dashboard />;
+    return (
+      <Dashboard
+        onLogout={async () => {
+          await fetch("http://localhost:8080/logout", {
+            method: "POST",
+            credentials: "include",
+          });
+
+          setIsAuthenticated(false);
+        }}
+      />
+    );
   }
 
   return <Login onLogin={() => setIsAuthenticated(true)} />;

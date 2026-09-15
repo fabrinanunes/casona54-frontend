@@ -8,9 +8,11 @@ type LoginProps = {
 function Login({ onLogin }: LoginProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
+    setError("");
 
     try {
       const response = await fetch("http://localhost:8080/login", {
@@ -29,6 +31,7 @@ function Login({ onLogin }: LoginProps) {
       onLogin();
     } catch (error) {
       console.error("Erro ao realizar login:", error);
+      setError("Usuário ou senha incorretos.");
     }
   };
 
@@ -68,6 +71,7 @@ function Login({ onLogin }: LoginProps) {
             />
           </div>
 
+          {error && <p className="login__error">{error}</p>}
           <button type="submit">Entrar</button>
         </form>
 
