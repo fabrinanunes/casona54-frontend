@@ -10,7 +10,7 @@ function App() {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const response = await fetch("http://localhost:8080/me", {
+        const response = await fetch(`${API_URL}/me`, {
           credentials: "include",
         });
 
@@ -25,6 +25,8 @@ function App() {
     checkSession();
   }, []);
 
+  const API_URL = import.meta.env.VITE_API_URL;
+
   if (isLoading) {
     return null;
   }
@@ -33,7 +35,7 @@ function App() {
     return (
       <Dashboard
         onLogout={async () => {
-          await fetch("http://localhost:8080/logout", {
+          await fetch(`${API_URL}//logout`, {
             method: "POST",
             credentials: "include",
           });

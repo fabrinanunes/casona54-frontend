@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import PaymentModal from "../PaymentModal/PaymentModal";
+
 import "./Dashboard.css";
 
 type Payment = {
@@ -11,19 +13,40 @@ type Payment = {
   status: string;
 };
 
+type PaymentFormData = {
+  description: string;
+  amount: string | number;
+  dueDate: string;
+  category: string;
+  responsible: string;
+  status: string;
+};
+
+type DashboardProps = {
+  onLogout: () => void;
+};
+
 function formatDate(date: string) {
   const [year, month, day] = date.split("-");
 
   return `${day}/${month}/${year}`;
 }
 
-type DashboardProps = {
-  onLogout: () => void;
-};
+function formatCurrency(value: number) {
+  return value.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
 
 function Dashboard({ onLogout }: DashboardProps) {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<PaymentFormData | null>(
+    null,
+  );
+  const [editingPaymentId, setEditingPaymentId] = useState<number | null>(null);
+  const [statusFilter, setStatusFilter] = useState("all");
   const [newPayment, setNewPayment] = useState({
     description: "",
     amount: "",
@@ -31,11 +54,12 @@ function Dashboard({ onLogout }: DashboardProps) {
     category: "",
     responsible: "",
   });
-  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+
+  const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     const fetchPayments = async () => {
-      const response = await fetch("http://localhost:8080/payments", {
+      const response = await fetch(`${API_URL}/payments`, {
         credentials: "include",
       });
 
@@ -47,11 +71,118 @@ function Dashboard({ onLogout }: DashboardProps) {
       const data = await response.json();
 
       setPayments(data);
-      console.log("payments", data);
+      console.log("data", data);
     };
 
     fetchPayments();
   }, []);
+
+  const totalAmount = payments.reduce(
+    (total, payment) => total + payment.amount,
+    0,
+  );
+
+  const paidAmount = payments
+    .filter((payment) => payment.status === "paid")
+    .reduce((total, payment) => total + payment.amount, 0);
+
+  const pendingAmount = payments
+    .filter((payment) => payment.status === "pending")
+    .reduce((total, payment) => total + payment.amount, 0);
+
+  const filteredPayments = payments.filter((payment) => {
+    if (statusFilter === "all") {
+      return true;
+    }
+
+    return payment.status === statusFilter;
+  });
+
+  const handleCreatePayment = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
+
+    const response = await fetch(`${API_URL}/payments`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        description: newPayment.description,
+        amount: Number(newPayment.amount),
+        due_date: newPayment.dueDate,
+        category: newPayment.category,
+        responsible: newPayment.responsible,
+        status: "pending",
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("Erro ao criar pagamento");
+      return;
+    }
+
+    const createdPayment = await response.json();
+
+    setPayments((currentPayments) => [...currentPayments, createdPayment]);
+
+    setIsPaymentModalOpen(false);
+
+    setNewPayment({
+      description: "",
+      amount: "",
+      dueDate: "",
+      category: "",
+      responsible: "",
+    });
+  };
+
+  const handleUpdatePayment = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
+
+    if (editingPayment === null || editingPaymentId === null) {
+      return;
+    }
+
+    const response = await fetch(
+      `${API_URL}payments/${editingPaymentId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          description: editingPayment.description,
+          amount: Number(editingPayment.amount),
+          due_date: editingPayment.dueDate,
+          category: editingPayment.category,
+          responsible: editingPayment.responsible,
+          status: editingPayment.status,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      console.error("Erro ao atualizar pagamento");
+      return;
+    }
+
+    const updatedPayment = await response.json();
+
+    setPayments((currentPayments) =>
+      currentPayments.map((payment) =>
+        payment.id === updatedPayment.id ? updatedPayment : payment,
+      ),
+    );
+
+    setEditingPayment(null);
+    setEditingPaymentId(null);
+  };
 
   return (
     <main className="dashboard">
@@ -70,43 +201,17 @@ function Dashboard({ onLogout }: DashboardProps) {
         <div className="dashboard__summary">
           <div className="dashboard__card">
             <span>Total</span>
-            <strong>
-              R${" "}
-              {payments
-                .reduce((total, payment) => total + payment.amount, 0)
-                .toLocaleString("pt-BR", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-            </strong>
+            <strong>{formatCurrency(totalAmount)}</strong>
           </div>
 
           <div className="dashboard__card">
             <span>Pago</span>
-            <strong>
-              R${" "}
-              {payments
-                .filter((payment) => payment.status === "paid")
-                .reduce((total, payment) => total + payment.amount, 0)
-                .toLocaleString("pt-BR", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-            </strong>
+            <strong>{formatCurrency(paidAmount)}</strong>
           </div>
 
           <div className="dashboard__card">
             <span>Pendente</span>
-            <strong>
-              R${" "}
-              {payments
-                .filter((payment) => payment.status === "pending")
-                .reduce((total, payment) => total + payment.amount, 0)
-                .toLocaleString("pt-BR", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-            </strong>
+            <strong>{formatCurrency(pendingAmount)}</strong>
           </div>
         </div>
 
@@ -122,6 +227,29 @@ function Dashboard({ onLogout }: DashboardProps) {
             </button>
           </div>
 
+          <div className="dashboard__filters">
+            <button
+              className={statusFilter === "all" ? "active" : ""}
+              onClick={() => setStatusFilter("all")}
+            >
+              Todos
+            </button>
+
+            <button
+              className={statusFilter === "pending" ? "active" : ""}
+              onClick={() => setStatusFilter("pending")}
+            >
+              Pendentes
+            </button>
+
+            <button
+              className={statusFilter === "paid" ? "active" : ""}
+              onClick={() => setStatusFilter("paid")}
+            >
+              Pagos
+            </button>
+          </div>
+
           <div className="dashboard__payments-table-header">
             <span>Descrição</span>
             <span>Valor</span>
@@ -130,197 +258,126 @@ function Dashboard({ onLogout }: DashboardProps) {
           </div>
 
           <div className="dashboard__payments-list">
-            {payments.map((payment) => (
-              <div key={payment.id}>
-                <div>
-                  <strong>{payment.description}</strong>
-                  <small>{payment.category}</small>
-                </div>
-
-                <span>
-                  R${" "}
-                  {payment.amount.toLocaleString("pt-BR", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
-
-                <span>{formatDate(payment.due_date)}</span>
-
-                <div className="payment-actions">
-                  <span
-                    className={`payment-status payment-status--${payment.status}`}
-                  >
-                    {payment.status === "paid" ? "Pago" : "Pendente"}
-                  </span>
-
-                  <button
-                    className="payment-edit"
-                    type="button"
-                    onClick={() => setEditingPayment(payment)}
-                  >
-                    Editar
-                  </button>
-                </div>
+            {filteredPayments.length === 0 ? (
+              <div className="dashboard__empty">
+                {statusFilter === "paid"
+                  ? "Nenhum pagamento marcado como pago."
+                  : statusFilter === "pending"
+                    ? "Nenhum pagamento pendente."
+                    : "Nenhum pagamento encontrado."}
               </div>
-            ))}
+            ) : (
+              filteredPayments.map((payment) => (
+                <div key={payment.id}>
+                  <div>
+                    <strong>{payment.description}</strong>
+                    <small>{payment.category}</small>
+                  </div>
+
+                  <span>{formatCurrency(payment.amount)}</span>
+
+                  <span>{formatDate(payment.due_date)}</span>
+
+                  <div className="payment-actions">
+                    <span
+                      className={`payment-status payment-status--${payment.status}`}
+                    >
+                      {payment.status === "paid" ? "Pago" : "Pendente"}
+                    </span>
+
+                    <button
+                      className="payment-edit"
+                      type="button"
+                      onClick={() => {
+                        setEditingPaymentId(payment.id);
+
+                        setEditingPayment({
+                          description: payment.description,
+                          amount: payment.amount,
+                          dueDate: payment.due_date,
+                          category: payment.category,
+                          responsible: payment.responsible,
+                          status: payment.status,
+                        });
+                      }}
+                    >
+                      Editar
+                    </button>
+
+                    <button
+                      className="payment-delete"
+                      type="button"
+                      onClick={async () => {
+                        const confirmed = window.confirm(
+                          `Deseja excluir o pagamento "${payment.description}"?`,
+                        );
+
+                        if (!confirmed) {
+                          return;
+                        }
+
+                        const response = await fetch(
+                          `${API_URL}/payments/${payment.id}`,
+                          {
+                            method: "DELETE",
+                            credentials: "include",
+                          },
+                        );
+
+                        if (!response.ok) {
+                          console.error("Erro ao excluir pagamento");
+                          return;
+                        }
+
+                        setPayments((currentPayments) =>
+                          currentPayments.filter(
+                            (item) => item.id !== payment.id,
+                          ),
+                        );
+                      }}
+                    >
+                      Excluir
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </section>
       </section>
 
       {isPaymentModalOpen && (
-        <div className="payment-modal-overlay">
-          <div className="payment-modal">
-            <div className="payment-modal__header">
-              <div>
-                <h2>Novo pagamento</h2>
-                <p>Adicione um novo gasto da construção.</p>
-              </div>
+        <PaymentModal
+          mode="create"
+          payment={{
+            ...newPayment,
+            status: "pending",
+          }}
+          onChange={(payment) => {
+            setNewPayment({
+              description: payment.description,
+              amount: String(payment.amount),
+              dueDate: payment.dueDate,
+              category: payment.category,
+              responsible: payment.responsible,
+            });
+          }}
+          onClose={() => setIsPaymentModalOpen(false)}
+          onSubmit={handleCreatePayment}
+        />
+      )}
 
-              <button
-                className="payment-modal__close"
-                onClick={() => setIsPaymentModalOpen(false)}
-              >
-                ×
-              </button>
-            </div>
-
-            <form
-              className="payment-modal__form"
-              onSubmit={async (event) => {
-                event.preventDefault();
-
-                const response = await fetch("http://localhost:8080/payments", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  credentials: "include",
-                  body: JSON.stringify({
-                    description: newPayment.description,
-                    amount: Number(newPayment.amount),
-                    due_date: newPayment.dueDate,
-                    category: newPayment.category,
-                    responsible: newPayment.responsible,
-                    status: "pending",
-                  }),
-                });
-
-                if (!response.ok) {
-                  console.error("Erro ao criar pagamento");
-                  return;
-                }
-
-                setIsPaymentModalOpen(false);
-
-                const createdPayment = await response.json();
-
-                setPayments((currentPayments) => [
-                  ...currentPayments,
-                  createdPayment,
-                ]);
-
-                setNewPayment({
-                  description: "",
-                  amount: "",
-                  dueDate: "",
-                  category: "",
-                  responsible: "",
-                });
-              }}
-            >
-              <div className="payment-modal__field">
-                <label htmlFor="description">Descrição</label>
-                <input
-                  id="description"
-                  type="text"
-                  placeholder="Ex: Arquiteto"
-                  value={newPayment.description}
-                  onChange={(event) =>
-                    setNewPayment({
-                      ...newPayment,
-                      description: event.target.value,
-                    })
-                  }
-                />
-              </div>
-
-              <div className="payment-modal__field">
-                <label htmlFor="amount">Valor</label>
-                <input
-                  id="amount"
-                  type="number"
-                  placeholder="R$ 22.000,00"
-                  value={newPayment.amount}
-                  onChange={(event) =>
-                    setNewPayment({
-                      ...newPayment,
-                      amount: event.target.value,
-                    })
-                  }
-                />
-              </div>
-
-              <div className="payment-modal__field">
-                <label htmlFor="dueDate">Vencimento</label>
-                <input
-                  id="dueDate"
-                  type="date"
-                  value={newPayment.dueDate}
-                  onChange={(event) =>
-                    setNewPayment({
-                      ...newPayment,
-                      dueDate: event.target.value,
-                    })
-                  }
-                />
-              </div>
-
-              <div className="payment-modal__field">
-                <label htmlFor="category">Categoria</label>
-                <input
-                  id="category"
-                  type="text"
-                  placeholder="Ex: Mão de Obra"
-                  value={newPayment.category}
-                  onChange={(event) =>
-                    setNewPayment({
-                      ...newPayment,
-                      category: event.target.value,
-                    })
-                  }
-                />
-              </div>
-
-              <div className="payment-modal__field">
-                <label htmlFor="responsible">Responsável</label>
-                <input
-                  id="responsible"
-                  type="text"
-                  placeholder="Ex: Fabrina"
-                  value={newPayment.responsible}
-                  onChange={(event) =>
-                    setNewPayment({
-                      ...newPayment,
-                      responsible: event.target.value,
-                    })
-                  }
-                />
-              </div>
-
-              <div className="payment-modal__actions">
-                <button
-                  type="button"
-                  onClick={() => setIsPaymentModalOpen(false)}
-                >
-                  Cancelar
-                </button>
-
-                <button type="submit">Salvar pagamento</button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {editingPayment && editingPaymentId !== null && (
+        <PaymentModal
+          mode="edit"
+          payment={editingPayment}
+          onChange={setEditingPayment}
+          onClose={() => {
+            setEditingPayment(null);
+            setEditingPaymentId(null);
+          }}
+          onSubmit={handleUpdatePayment}
+        />
       )}
     </main>
   );
