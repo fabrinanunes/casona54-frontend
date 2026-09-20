@@ -1,5 +1,6 @@
 import { useState } from "react";
 import "./Login.css";
+import { login } from "../../services/authService";
 
 type LoginProps = {
   onLogin: () => void;
@@ -10,25 +11,16 @@ function Login({ onLogin }: LoginProps) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  const API_URL = import.meta.env.VITE_API_URL;
-
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
+
     setError("");
 
     try {
-      const response = await fetch(`${API_URL}/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({ email, password }),
+      await login({
+        email,
+        password,
       });
-
-      if (!response.ok) {
-        throw new Error("Usuário ou senhha incorretos.");
-      }
 
       onLogin();
     } catch (error) {

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 
 import Login from "./components/Login/Login";
 import Dashboard from "./components/Dashboard/Dashboard";
+import { getCurrentUser, logout } from "./services/authService";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -10,11 +11,9 @@ function App() {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const response = await fetch(`${API_URL}/me`, {
-          credentials: "include",
-        });
+        await getCurrentUser();
 
-        setIsAuthenticated(response.ok);
+        setIsAuthenticated(true);
       } catch {
         setIsAuthenticated(false);
       } finally {
@@ -25,25 +24,21 @@ function App() {
     checkSession();
   }, []);
 
-  const API_URL = import.meta.env.VITE_API_URL;
-
   if (isLoading) {
     return null;
   }
 
-  if (isAuthenticated) {
-    return (
-      <Dashboard
-        onLogout={async () => {
-          await fetch(`${API_URL}//logout`, {
-            method: "POST",
-            credentials: "include",
-          });
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setIsAuthenticated(false);
+    } catch (error) {
+      console.error("Erro ao realizar logout:", error);
+    }
+  };
 
-          setIsAuthenticated(false);
-        }}
-      />
-    );
+  if (isAuthenticated) {
+    return <Dashboard onLogout={handleLogout} />;
   }
 
   return <Login onLogin={() => setIsAuthenticated(true)} />;

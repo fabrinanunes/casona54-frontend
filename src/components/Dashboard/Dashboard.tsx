@@ -2,16 +2,13 @@ import { useEffect, useState } from "react";
 import PaymentModal from "../PaymentModal/PaymentModal";
 
 import "./Dashboard.css";
-
-type Payment = {
-  id: number;
-  description: string;
-  amount: number;
-  due_date: string;
-  category: string;
-  responsible: string;
-  status: string;
-};
+import {
+  createPayment,
+  deletePayment,
+  getPayments,
+  updatePayment,
+  type Payment,
+} from "../../services/paymentsService";
 
 type PaymentFormData = {
   description: string;
@@ -55,23 +52,15 @@ function Dashboard({ onLogout }: DashboardProps) {
     responsible: "",
   });
 
-  const API_URL = import.meta.env.VITE_API_URL;
-
   useEffect(() => {
     const fetchPayments = async () => {
-      const response = await fetch(`${API_URL}/payments`, {
-        credentials: "include",
-      });
+      try {
+        const data = await getPayments();
 
-      if (!response.ok) {
-        console.error("Erro ao buscar pagamentos");
-        return;
+        setPayments(data);
+      } catch (error) {
+        console.error("Error fetching payments", error);
       }
-
-      const data = await response.json();
-
-      setPayments(data);
-      console.log("data", data);
     };
 
     fetchPayments();
@@ -103,40 +92,32 @@ function Dashboard({ onLogout }: DashboardProps) {
   ) => {
     event.preventDefault();
 
-    const response = await fetch(`${API_URL}/payments`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
-      body: JSON.stringify({
-        description: newPayment.description,
-        amount: Number(newPayment.amount),
-        due_date: newPayment.dueDate,
-        category: newPayment.category,
-        responsible: newPayment.responsible,
-        status: "pending",
-      }),
-    });
+    const paymentData = {
+      description: newPayment.description,
+      amount: Number(newPayment.amount),
+      due_date: newPayment.dueDate,
+      category: newPayment.category,
+      responsible: newPayment.responsible,
+      status: "pending",
+    };
 
-    if (!response.ok) {
-      console.error("Erro ao criar pagamento");
-      return;
+    try {
+      const data = await createPayment(paymentData);
+
+      setPayments((currentPayments) => [...currentPayments, data]);
+
+      setIsPaymentModalOpen(false);
+
+      setNewPayment({
+        description: "",
+        amount: "",
+        dueDate: "",
+        category: "",
+        responsible: "",
+      });
+    } catch (error) {
+      console.error("Error creating payment:", error);
     }
-
-    const createdPayment = await response.json();
-
-    setPayments((currentPayments) => [...currentPayments, createdPayment]);
-
-    setIsPaymentModalOpen(false);
-
-    setNewPayment({
-      description: "",
-      amount: "",
-      dueDate: "",
-      category: "",
-      responsible: "",
-    });
   };
 
   const handleUpdatePayment = async (
@@ -148,40 +129,53 @@ function Dashboard({ onLogout }: DashboardProps) {
       return;
     }
 
-    const response = await fetch(
-      `${API_URL}payments/${editingPaymentId}`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          description: editingPayment.description,
-          amount: Number(editingPayment.amount),
-          due_date: editingPayment.dueDate,
-          category: editingPayment.category,
-          responsible: editingPayment.responsible,
-          status: editingPayment.status,
-        }),
-      },
-    );
+    try {
+      const updatedPayment = await updatePayment(editingPaymentId, {
+        description: editingPayment.description,
+        amount: Number(editingPayment.amount),
+        due_date: editingPayment.dueDate,
+        category: editingPayment.category,
+        responsible: editingPayment.responsible,
+        status: editingPayment.status,
+      });
 
-    if (!response.ok) {
-      console.error("Erro ao atualizar pagamento");
+      setPayments((currentPayments) =>
+        currentPayments.map((payment) =>
+          payment.id === updatedPayment.id ? updatedPayment : payment,
+        ),
+      );
+
+      setEditingPayment(null);
+      setEditingPaymentId(null);
+    } catch (error) {
+      console.error("Erro ao atualizar pagamento:", error);
+    }
+  };
+
+  const handleDeletePayment = async (paymentId: number) => {
+    const payment = payments.find((item) => item.id === paymentId);
+
+    if (!payment) {
       return;
     }
 
-    const updatedPayment = await response.json();
-
-    setPayments((currentPayments) =>
-      currentPayments.map((payment) =>
-        payment.id === updatedPayment.id ? updatedPayment : payment,
-      ),
+    const confirmed = window.confirm(
+      `Deseja excluir o pagamento "${payment.description}"?`,
     );
 
-    setEditingPayment(null);
-    setEditingPaymentId(null);
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await deletePayment(paymentId);
+
+      setPayments((currentPayments) =>
+        currentPayments.filter((item) => item.id !== paymentId),
+      );
+    } catch (error) {
+      console.error("Error deleting payment:", error);
+    }
   };
 
   return (
@@ -307,34 +301,7 @@ function Dashboard({ onLogout }: DashboardProps) {
                     <button
                       className="payment-delete"
                       type="button"
-                      onClick={async () => {
-                        const confirmed = window.confirm(
-                          `Deseja excluir o pagamento "${payment.description}"?`,
-                        );
-
-                        if (!confirmed) {
-                          return;
-                        }
-
-                        const response = await fetch(
-                          `${API_URL}/payments/${payment.id}`,
-                          {
-                            method: "DELETE",
-                            credentials: "include",
-                          },
-                        );
-
-                        if (!response.ok) {
-                          console.error("Erro ao excluir pagamento");
-                          return;
-                        }
-
-                        setPayments((currentPayments) =>
-                          currentPayments.filter(
-                            (item) => item.id !== payment.id,
-                          ),
-                        );
-                      }}
+                      onClick={() => handleDeletePayment(payment.id)}
                     >
                       Excluir
                     </button>
