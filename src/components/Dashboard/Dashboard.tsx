@@ -51,6 +51,8 @@ function Dashboard({ onLogout }: DashboardProps) {
     category: "",
     responsible: "",
   });
+  const [isLoadingPayments, setIsLoadingPayments] = useState(true);
+  const [paymentsError, setPaymentsError] = useState(false);
 
   useEffect(() => {
     const fetchPayments = async () => {
@@ -58,8 +60,11 @@ function Dashboard({ onLogout }: DashboardProps) {
         const data = await getPayments();
 
         setPayments(data);
+        setPaymentsError(true);
       } catch (error) {
         console.error("Error fetching payments", error);
+      } finally {
+        setIsLoadingPayments(false);
       }
     };
 
@@ -252,7 +257,13 @@ function Dashboard({ onLogout }: DashboardProps) {
           </div>
 
           <div className="dashboard__payments-list">
-            {filteredPayments.length === 0 ? (
+            {isLoadingPayments ? (
+              <div className="dashboard__empty">Carregando pagamentos...</div>
+            ) : paymentsError ? (
+              <div className="dashboard__empty">
+                Não foi possível carregar os pagamentos.
+              </div>
+            ) : filteredPayments.length === 0 ? (
               <div className="dashboard__empty">
                 {statusFilter === "paid"
                   ? "Nenhum pagamento marcado como pago."

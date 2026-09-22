@@ -1,4 +1,4 @@
-import { apiUrl } from "./api";
+import { apiRequest } from "./api";
 
 export type Payment = {
   id: number;
@@ -20,58 +20,30 @@ export type CreatePaymentData = {
 };
 
 export async function getPayments(): Promise<Payment[]> {
-   const response = await fetch(`${apiUrl}/payments`, {
-      credentials: "include",
-   });
-
-   if (!response.ok) {
-      throw new Error("Error getting payments")
-   }
-
-   return response.json();
+  return apiRequest<Payment[]>("/payments");
 }
 
-export async function createPayment(payment: CreatePaymentData): Promise<Payment> {
-   const response = await fetch(`${apiUrl}/payments`, {
-      method: 'POST',
-      headers: {
-         'Content-type': 'application/json'
-      },
-      credentials: 'include',
-      body: JSON.stringify(payment)
-   });
-
-   if (!response.ok) {
-      throw new Error('Error creating a payment')
-   }
-
-   return response.json();
+export async function createPayment(
+  payment: CreatePaymentData
+): Promise<Payment> {
+  return apiRequest<Payment>("/payments", {
+    method: "POST",
+    body: payment,
+  });
 }
 
-export async function updatePayment(id: number, payment: CreatePaymentData): Promise<Payment> {
-   const response = await fetch(`${apiUrl}/payments/${id}`, {
-      method: 'PUT',
-      headers: {
-         'Content-type': 'application/json'
-      },
-      credentials: 'include',
-      body: JSON.stringify(payment),
-   });
-
-    if (!response.ok) {
-      throw new Error('Error updating payment')
-   }
-
-   return response.json();
+export async function updatePayment(
+  id: number,
+  payment: CreatePaymentData
+): Promise<Payment> {
+  return apiRequest<Payment>(`/payments/${id}`, {
+    method: "PUT",
+    body: payment,
+  });
 }
 
 export async function deletePayment(id: number): Promise<void> {
-  const response = await fetch(`${apiUrl}/payments/${id}`, {
+  await apiRequest<void>(`/payments/${id}`, {
     method: "DELETE",
-    credentials: "include",
   });
-
-  if (!response.ok) {
-    throw new Error("Erro ao excluir pagamento");
-  }
 }
