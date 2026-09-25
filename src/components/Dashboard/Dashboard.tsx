@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import PaymentModal from "../PaymentModal/PaymentModal";
+import PaymentModal, {
+  type PaymentFormData,
+} from "../PaymentModal/PaymentModal";
 
 import "./Dashboard.css";
 import {
@@ -7,17 +9,9 @@ import {
   deletePayment,
   getPayments,
   updatePayment,
+  type CreatePaymentData,
   type Payment,
 } from "../../services/paymentsService";
-
-type PaymentFormData = {
-  description: string;
-  amount: string | number;
-  dueDate: string;
-  category: string;
-  responsible: string;
-  status: string;
-};
 
 type DashboardProps = {
   onLogout: () => void;
@@ -97,7 +91,7 @@ function Dashboard({ onLogout }: DashboardProps) {
   ) => {
     event.preventDefault();
 
-    const paymentData = {
+    const paymentData: CreatePaymentData = {
       description: newPayment.description,
       amount: Number(newPayment.amount),
       due_date: newPayment.dueDate,
@@ -349,7 +343,7 @@ function Dashboard({ onLogout }: DashboardProps) {
         <PaymentModal
           mode="edit"
           payment={editingPayment}
-          onChange={setEditingPayment}
+          onChange={(payment) => setEditingPayment(payment)}
           onClose={() => {
             setEditingPayment(null);
             setEditingPaymentId(null);

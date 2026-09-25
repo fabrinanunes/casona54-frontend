@@ -1,5 +1,7 @@
 import { apiRequest } from "./api";
 
+export type PaymentStatus = "pending" | "paid";
+
 export type Payment = {
   id: number;
   description: string;
@@ -7,7 +9,7 @@ export type Payment = {
   due_date: string;
   category: string;
   responsible: string;
-  status: string;
+  status: PaymentStatus;
 };
 
 export type CreatePaymentData = {
@@ -16,7 +18,7 @@ export type CreatePaymentData = {
   due_date: string;
   category: string;
   responsible: string;
-  status: string;
+  status: PaymentStatus;
 };
 
 export async function getPayments(): Promise<Payment[]> {

@@ -1,4 +1,4 @@
-import { apiUrl } from "./api";
+import { apiRequest } from "./api";
 
 export type User = {
   id: number;
@@ -11,39 +11,18 @@ type LoginData = {
 };
 
 export async function login(data: LoginData): Promise<void> {
-  const response = await fetch(`${apiUrl}/login`, {
+  await apiRequest<void>("/login", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-    body: JSON.stringify(data),
+    body: data,
   });
-
-  if (!response.ok) {
-    throw new Error("Credentials are incorrect.");
-  }
 }
 
 export async function logout(): Promise<void> {
-  const response = await fetch(`${apiUrl}/logout`, {
+  await apiRequest<void>("/logout", {
     method: "POST",
-    credentials: "include",
   });
-
-  if (!response.ok) {
-    throw new Error("Error doing logout.");
-  }
 }
 
 export async function getCurrentUser(): Promise<User> {
-  const response = await fetch(`${apiUrl}/me`, {
-    credentials: "include",
-  });
-
-  if (!response.ok) {
-    throw new Error("User not authenticated.");
-  }
-
-  return response.json();
+  return apiRequest<User>("/me");
 }

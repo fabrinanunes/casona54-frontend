@@ -1,14 +1,15 @@
 import { useState } from "react";
+import type { PaymentStatus } from "../../services/paymentsService";
 
 import "./PaymentModal.css";
 
-type PaymentFormData = {
+export type PaymentFormData = {
   description: string;
   amount: string | number;
   dueDate: string;
   category: string;
   responsible: string;
-  status: string;
+  status: PaymentStatus;
 };
 
 type PaymentModalProps = {
@@ -164,12 +165,14 @@ function PaymentModal({
                 id="payment-status"
                 value={payment.status}
                 required
-                onChange={(event) =>
+                onChange={(event) => {
+                  const updatedStatus = event.target.value as PaymentStatus;
+
                   onChange({
                     ...payment,
-                    status: event.target.value,
-                  })
-                }
+                    status: updatedStatus,
+                  });
+                }}
               >
                 <option value="pending">Pendente</option>
                 <option value="paid">Pago</option>
