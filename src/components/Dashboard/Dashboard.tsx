@@ -37,7 +37,12 @@ function Dashboard({ onLogout }: DashboardProps) {
     null,
   );
   const [editingPaymentId, setEditingPaymentId] = useState<number | null>(null);
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [filters, setFilters] = useState({
+    status: "all",
+    search: "",
+    category: "all",
+    responsible: "all",
+  });
   const [newPayment, setNewPayment] = useState({
     description: "",
     amount: "",
@@ -79,11 +84,23 @@ function Dashboard({ onLogout }: DashboardProps) {
     .reduce((total, payment) => total + payment.amount, 0);
 
   const filteredPayments = payments.filter((payment) => {
-    if (statusFilter === "all") {
-      return true;
-    }
+    const matchesStatus =
+      filters.status === "all" || payment.status === filters.status;
 
-    return payment.status === statusFilter;
+    const matchesSearch = payment.description
+      .toLowerCase()
+      .includes(filters.search.toLowerCase());
+
+    const matchesCategory =
+      filters.category === "all" || payment.category === filters.category;
+
+    const matchesResponsible =
+      filters.responsible === "all" ||
+      payment.responsible === filters.responsible;
+
+    return (
+      matchesStatus && matchesSearch && matchesCategory && matchesResponsible
+    );
   });
 
   const handleCreatePayment = async (
@@ -177,6 +194,12 @@ function Dashboard({ onLogout }: DashboardProps) {
     }
   };
 
+  const categories = [...new Set(payments.map((payment) => payment.category))];
+
+  const responsibles = [
+    ...new Set(payments.map((payment) => payment.responsible)),
+  ].filter(Boolean);
+
   return (
     <main className="dashboard">
       <header className="dashboard__header">
@@ -212,7 +235,10 @@ function Dashboard({ onLogout }: DashboardProps) {
           <div className="dashboard__payments-header">
             <div>
               <h2>Pagamentos</h2>
-              <p>Acompanhe os gastos da construção</p>
+              <p>
+                {filteredPayments.length}{" "}
+                {filteredPayments.length === 1 ? "pagamento" : "pagamentos"}
+              </p>
             </div>
 
             <button onClick={() => setIsPaymentModalOpen(true)}>
@@ -221,25 +247,80 @@ function Dashboard({ onLogout }: DashboardProps) {
           </div>
 
           <div className="dashboard__filters">
-            <button
-              className={statusFilter === "all" ? "active" : ""}
-              onClick={() => setStatusFilter("all")}
+            <input
+              type="search"
+              placeholder="Buscar pagamento..."
+              value={filters.search}
+              onChange={(event) =>
+                setFilters({
+                  ...filters,
+                  search: event.target.value,
+                })
+              }
+            />
+
+            <select
+              value={filters.status}
+              onChange={(event) =>
+                setFilters({
+                  ...filters,
+                  status: event.target.value,
+                })
+              }
             >
-              Todos
-            </button>
+              <option value="all">Todos os status</option>
+              <option value="pending">Pendentes</option>
+              <option value="paid">Pagos</option>
+            </select>
+
+            <select
+              value={filters.category}
+              onChange={(event) =>
+                setFilters({
+                  ...filters,
+                  category: event.target.value,
+                })
+              }
+            >
+              <option value="all">Todas as categorias</option>
+
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={filters.responsible}
+              onChange={(event) =>
+                setFilters({
+                  ...filters,
+                  responsible: event.target.value,
+                })
+              }
+            >
+              <option value="all">Todos os responsáveis</option>
+
+              {responsibles.map((responsible) => (
+                <option key={responsible} value={responsible}>
+                  {responsible}
+                </option>
+              ))}
+            </select>
 
             <button
-              className={statusFilter === "pending" ? "active" : ""}
-              onClick={() => setStatusFilter("pending")}
+              type="button"
+              onClick={() =>
+                setFilters({
+                  status: "all",
+                  search: "",
+                  category: "all",
+                  responsible: "all",
+                })
+              }
             >
-              Pendentes
-            </button>
-
-            <button
-              className={statusFilter === "paid" ? "active" : ""}
-              onClick={() => setStatusFilter("paid")}
-            >
-              Pagos
+              Limpar filtros
             </button>
           </div>
 
@@ -259,9 +340,9 @@ function Dashboard({ onLogout }: DashboardProps) {
               </div>
             ) : filteredPayments.length === 0 ? (
               <div className="dashboard__empty">
-                {statusFilter === "paid"
+                {filters.status === "paid"
                   ? "Nenhum pagamento marcado como pago."
-                  : statusFilter === "pending"
+                  : filters.status === "pending"
                     ? "Nenhum pagamento pendente."
                     : "Nenhum pagamento encontrado."}
               </div>
