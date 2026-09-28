@@ -1,16 +1,15 @@
 import { apiRequest } from "./api";
 
-export type User = {
-  id: number;
-  email: string;
-};
+import type { User } from "../types/user";
 
 type LoginData = {
   email: string;
   password: string;
 };
 
-export async function login(data: LoginData): Promise<void> {
+export async function login(
+  data: LoginData,
+): Promise<void> {
   await apiRequest<void>("/login", {
     method: "POST",
     body: data,
