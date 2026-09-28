@@ -117,6 +117,60 @@ function Dashboard({ onLogout }: DashboardProps) {
     0,
   );
 
+  const categoryTotals = Object.values(
+    payments.reduce<Record<string, { category: string; amount: number }>>(
+      (accumulator, payment) => {
+        if (!accumulator[payment.category]) {
+          accumulator[payment.category] = {
+            category: payment.category,
+            amount: 0,
+          };
+        }
+
+        accumulator[payment.category].amount += payment.amount;
+
+        return accumulator;
+      },
+      {},
+    ),
+  ).sort((a, b) => b.amount - a.amount);
+
+  const maxCategoryAmount = categoryTotals[0]?.amount ?? 0;
+
+  const monthlyTotalsMap = payments.reduce<Record<string, number>>(
+    (accumulator, payment) => {
+      const month = payment.due_date.slice(0, 7);
+
+      accumulator[month] = (accumulator[month] ?? 0) + payment.amount;
+
+      return accumulator;
+    },
+    {},
+  );
+
+  const monthlyTotals = Object.entries(monthlyTotalsMap)
+    .map(([month, amount]) => ({
+      month,
+      amount,
+    }))
+    .sort((a, b) => a.month.localeCompare(b.month));
+
+  const maxMonthlyAmount = monthlyTotals.reduce(
+    (max, item) => Math.max(max, item.amount),
+    0,
+  );
+
+  const formatMonth = (month: string) => {
+    const [year, monthNumber] = month.split("-");
+
+    const date = new Date(Number(year), Number(monthNumber) - 1, 1);
+
+    return new Intl.DateTimeFormat("pt-BR", {
+      month: "short",
+      year: "numeric",
+    }).format(date);
+  };
+
   const filteredPayments = payments.filter((payment) => {
     const matchesStatus =
       filters.status === "all" || payment.status === filters.status;
@@ -321,6 +375,87 @@ function Dashboard({ onLogout }: DashboardProps) {
             </small>
           </div>
         </div>
+
+        <section className="dashboard__overview">
+          <div className="dashboard__overview-header">
+            <div>
+              <h2>Gastos por categoria</h2>
+              <p>Distribuição dos pagamentos da construção</p>
+            </div>
+          </div>
+
+          {categoryTotals.length === 0 ? (
+            <div className="dashboard__empty">Nenhum dado disponível.</div>
+          ) : (
+            <div className="dashboard__category-list">
+              {categoryTotals.map((category) => {
+                const percentage =
+                  maxCategoryAmount === 0
+                    ? 0
+                    : (category.amount / maxCategoryAmount) * 100;
+
+                return (
+                  <div
+                    className="dashboard__category-item"
+                    key={category.category}
+                  >
+                    <div className="dashboard__category-meta">
+                      <span>{category.category}</span>
+
+                      <strong>{formatCurrency(category.amount)}</strong>
+                    </div>
+
+                    <div className="dashboard__category-bar">
+                      <div
+                        className="dashboard__category-bar-fill"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        <section className="dashboard__overview">
+          <div className="dashboard__overview-header">
+            <div>
+              <h2>Evolução dos gastos</h2>
+              <p>Valor total previsto por mês, com base no vencimento</p>
+            </div>
+          </div>
+
+          {monthlyTotals.length === 0 ? (
+            <div className="dashboard__empty">Nenhum dado disponível.</div>
+          ) : (
+            <div className="dashboard__monthly-list">
+              {monthlyTotals.map((item) => {
+                const percentage =
+                  maxMonthlyAmount === 0
+                    ? 0
+                    : (item.amount / maxMonthlyAmount) * 100;
+
+                return (
+                  <div className="dashboard__monthly-item" key={item.month}>
+                    <div className="dashboard__monthly-meta">
+                      <span>{formatMonth(item.month)}</span>
+
+                      <strong>{formatCurrency(item.amount)}</strong>
+                    </div>
+
+                    <div className="dashboard__monthly-bar">
+                      <div
+                        className="dashboard__monthly-bar-fill"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
 
         <section className="dashboard__payments">
           <div className="dashboard__payments-header">
