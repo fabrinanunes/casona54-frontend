@@ -42,6 +42,8 @@ function Dashboard({ onLogout }: DashboardProps) {
     search: "",
     category: "all",
     responsible: "all",
+    dueDateFrom: "",
+    dueDateTo: "",
   });
   const [newPayment, setNewPayment] = useState({
     description: "",
@@ -52,6 +54,7 @@ function Dashboard({ onLogout }: DashboardProps) {
   });
   const [isLoadingPayments, setIsLoadingPayments] = useState(true);
   const [paymentsError, setPaymentsError] = useState(false);
+  const [sortBy, setSortBy] = useState("dueDateAsc");
 
   useEffect(() => {
     const fetchPayments = async () => {
@@ -70,18 +73,49 @@ function Dashboard({ onLogout }: DashboardProps) {
     fetchPayments();
   }, []);
 
+  const isOverdue = (payment: Payment) => {
+    if (payment.status !== "pending") {
+      return false;
+    }
+
+    const today = new Date();
+
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+
+    const todayAsString = `${year}-${month}-${day}`;
+
+    return payment.due_date < todayAsString;
+  };
+
   const totalAmount = payments.reduce(
     (total, payment) => total + payment.amount,
     0,
   );
 
-  const paidAmount = payments
-    .filter((payment) => payment.status === "paid")
-    .reduce((total, payment) => total + payment.amount, 0);
+  const paidPayments = payments.filter((payment) => payment.status === "paid");
 
-  const pendingAmount = payments
-    .filter((payment) => payment.status === "pending")
-    .reduce((total, payment) => total + payment.amount, 0);
+  const paidAmount = paidPayments.reduce(
+    (total, payment) => total + payment.amount,
+    0,
+  );
+
+  const pendingPayments = payments.filter(
+    (payment) => payment.status === "pending",
+  );
+
+  const pendingAmount = pendingPayments.reduce(
+    (total, payment) => total + payment.amount,
+    0,
+  );
+
+  const overduePayments = pendingPayments.filter(isOverdue);
+
+  const overdueAmount = overduePayments.reduce(
+    (total, payment) => total + payment.amount,
+    0,
+  );
 
   const filteredPayments = payments.filter((payment) => {
     const matchesStatus =
@@ -98,9 +132,37 @@ function Dashboard({ onLogout }: DashboardProps) {
       filters.responsible === "all" ||
       payment.responsible === filters.responsible;
 
+    const matchesDueDateFrom =
+      filters.dueDateFrom === "" || payment.due_date >= filters.dueDateFrom;
+
+    const matchesDueDateTo =
+      filters.dueDateTo === "" || payment.due_date <= filters.dueDateTo;
+
     return (
-      matchesStatus && matchesSearch && matchesCategory && matchesResponsible
+      matchesStatus &&
+      matchesSearch &&
+      matchesCategory &&
+      matchesResponsible &&
+      matchesDueDateFrom &&
+      matchesDueDateTo
     );
+  });
+
+  const sortedPayments = [...filteredPayments].sort((a, b) => {
+    switch (sortBy) {
+      case "dueDateDesc":
+        return b.due_date.localeCompare(a.due_date);
+
+      case "amountAsc":
+        return a.amount - b.amount;
+
+      case "amountDesc":
+        return b.amount - a.amount;
+
+      case "dueDateAsc":
+      default:
+        return a.due_date.localeCompare(b.due_date);
+    }
   });
 
   const handleCreatePayment = async (
@@ -217,17 +279,46 @@ function Dashboard({ onLogout }: DashboardProps) {
         <div className="dashboard__summary">
           <div className="dashboard__card">
             <span>Total</span>
+
             <strong>{formatCurrency(totalAmount)}</strong>
+
+            <small>
+              {payments.length}{" "}
+              {payments.length === 1 ? "pagamento" : "pagamentos"}
+            </small>
           </div>
 
           <div className="dashboard__card">
             <span>Pago</span>
+
             <strong>{formatCurrency(paidAmount)}</strong>
+
+            <small>
+              {paidPayments.length}{" "}
+              {paidPayments.length === 1 ? "pagamento" : "pagamentos"}
+            </small>
           </div>
 
           <div className="dashboard__card">
             <span>Pendente</span>
+
             <strong>{formatCurrency(pendingAmount)}</strong>
+
+            <small>
+              {pendingPayments.length}{" "}
+              {pendingPayments.length === 1 ? "pagamento" : "pagamentos"}
+            </small>
+          </div>
+
+          <div className="dashboard__card">
+            <span>Atrasado</span>
+
+            <strong>{formatCurrency(overdueAmount)}</strong>
+
+            <small>
+              {overduePayments.length}{" "}
+              {overduePayments.length === 1 ? "pagamento" : "pagamentos"}
+            </small>
           </div>
         </div>
 
@@ -309,6 +400,71 @@ function Dashboard({ onLogout }: DashboardProps) {
               ))}
             </select>
 
+            <select
+              value={sortBy}
+              onChange={(event) => setSortBy(event.target.value)}
+            >
+              <option value="dueDateAsc">Vencimento mais próximo</option>
+
+              <option value="dueDateDesc">Vencimento mais distante</option>
+
+              <option value="amountAsc">Menor valor</option>
+
+              <option value="amountDesc">Maior valor</option>
+            </select>
+
+            <span className="dashboard__filter-label">De</span>
+
+            <input
+              type="date"
+              aria-label="Data inicial"
+              value={filters.dueDateFrom}
+              onChange={(event) =>
+                setFilters({
+                  ...filters,
+                  dueDateFrom: event.target.value,
+                })
+              }
+            />
+
+            <span className="dashboard__filter-label">Até</span>
+
+            <input
+              type="date"
+              aria-label="Data final"
+              value={filters.dueDateTo}
+              onChange={(event) =>
+                setFilters({
+                  ...filters,
+                  dueDateTo: event.target.value,
+                })
+              }
+            />
+
+            <input
+              type="date"
+              aria-label="Data inicial"
+              value={filters.dueDateFrom}
+              onChange={(event) =>
+                setFilters({
+                  ...filters,
+                  dueDateFrom: event.target.value,
+                })
+              }
+            />
+
+            <input
+              type="date"
+              aria-label="Data final"
+              value={filters.dueDateTo}
+              onChange={(event) =>
+                setFilters({
+                  ...filters,
+                  dueDateTo: event.target.value,
+                })
+              }
+            />
+
             <button
               type="button"
               onClick={() =>
@@ -317,6 +473,8 @@ function Dashboard({ onLogout }: DashboardProps) {
                   search: "",
                   category: "all",
                   responsible: "all",
+                  dueDateFrom: "",
+                  dueDateTo: "",
                 })
               }
             >
@@ -347,7 +505,7 @@ function Dashboard({ onLogout }: DashboardProps) {
                     : "Nenhum pagamento encontrado."}
               </div>
             ) : (
-              filteredPayments.map((payment) => (
+              sortedPayments.map((payment) => (
                 <div key={payment.id}>
                   <div>
                     <strong>{payment.description}</strong>
@@ -360,9 +518,17 @@ function Dashboard({ onLogout }: DashboardProps) {
 
                   <div className="payment-actions">
                     <span
-                      className={`payment-status payment-status--${payment.status}`}
+                      className={`payment-status ${
+                        isOverdue(payment)
+                          ? "payment-status--overdue"
+                          : `payment-status--${payment.status}`
+                      }`}
                     >
-                      {payment.status === "paid" ? "Pago" : "Pendente"}
+                      {isOverdue(payment)
+                        ? "Atrasado"
+                        : payment.status === "paid"
+                          ? "Pago"
+                          : "Pendente"}
                     </span>
 
                     <button

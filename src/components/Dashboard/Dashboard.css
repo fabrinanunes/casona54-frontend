@@ -43,7 +43,7 @@
 
 .dashboard__summary {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   margin-bottom: 24px;
 }
@@ -247,6 +247,31 @@
 .dashboard__filters button:hover {
   border-color: #2563eb;
   color: #2563eb;
+}
+
+.payment-status--overdue {
+  background: #fef2f2;
+  color: #b42318 !important;
+}
+
+.dashboard__card-warning {
+  display: block;
+  margin-top: 8px;
+  color: #b42318;
+  font-size: 12px;
+}
+
+.dashboard__card small {
+  display: block;
+  margin-top: 8px;
+  color: #8a93a3;
+  font-size: 12px;
+}
+
+.dashboard__filter-label {
+  color: #667085;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 @media (max-width: 768px) {
