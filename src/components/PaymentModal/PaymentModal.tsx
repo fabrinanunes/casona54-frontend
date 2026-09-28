@@ -1,23 +1,23 @@
 import { useState } from "react";
-import type { PaymentStatus } from "../../services/paymentsService";
+import type { FormEvent } from "react";
+
+import {
+  PaymentStatus,
+  PaymentStatusLabel,
+} from "../../constants/paymentConstants";
+
+import type { PaymentFormData } from "../../types/payment";
+
+import { formatCurrency } from "../../utils/formatUtils";
 
 import "./PaymentModal.css";
-
-export type PaymentFormData = {
-  description: string;
-  amount: string | number;
-  dueDate: string;
-  category: string;
-  responsible: string;
-  status: PaymentStatus;
-};
 
 type PaymentModalProps = {
   mode: "create" | "edit";
   payment: PaymentFormData;
   onChange: (payment: PaymentFormData) => void;
   onClose: () => void;
-  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 };
 
 function PaymentModal({
@@ -30,6 +30,15 @@ function PaymentModal({
   const [isAmountFocused, setIsAmountFocused] = useState(false);
 
   const isEdit = mode === "edit";
+
+  const handleAmountChange = (value: string) => {
+    const numericValue = value.replace(/\D/g, "");
+
+    onChange({
+      ...payment,
+      amount: numericValue === "" ? "" : Number(numericValue),
+    });
+  };
 
   return (
     <div className="payment-modal-overlay">
@@ -49,6 +58,7 @@ function PaymentModal({
             className="payment-modal__close"
             type="button"
             onClick={onClose}
+            aria-label="Fechar"
           >
             ×
           </button>
@@ -78,31 +88,18 @@ function PaymentModal({
             <input
               id="payment-amount"
               type="text"
+              inputMode="numeric"
               value={
                 payment.amount === ""
                   ? ""
                   : isAmountFocused
                     ? String(payment.amount)
-                    : Number(payment.amount).toLocaleString("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                      })
+                    : formatCurrency(Number(payment.amount))
               }
               required
-              onFocus={() => {
-                setIsAmountFocused(true);
-              }}
-              onChange={(event) => {
-                const numericValue = event.target.value.replace(/\D/g, "");
-
-                onChange({
-                  ...payment,
-                  amount: numericValue === "" ? "" : Number(numericValue),
-                });
-              }}
-              onBlur={() => {
-                setIsAmountFocused(false);
-              }}
+              onFocus={() => setIsAmountFocused(true)}
+              onChange={(event) => handleAmountChange(event.target.value)}
+              onBlur={() => setIsAmountFocused(false)}
             />
           </div>
 
@@ -165,17 +162,18 @@ function PaymentModal({
                 id="payment-status"
                 value={payment.status}
                 required
-                onChange={(event) => {
-                  const updatedStatus = event.target.value as PaymentStatus;
-
+                onChange={(event) =>
                   onChange({
                     ...payment,
-                    status: updatedStatus,
-                  });
-                }}
+                    status: event.target.value as PaymentFormData["status"],
+                  })
+                }
               >
-                <option value="pending">Pendente</option>
-                <option value="paid">Pago</option>
+                {Object.values(PaymentStatus).map((status) => (
+                  <option key={status} value={status}>
+                    {PaymentStatusLabel[status]}
+                  </option>
+                ))}
               </select>
             </div>
           )}
