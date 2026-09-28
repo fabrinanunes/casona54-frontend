@@ -1,32 +1,16 @@
 import { apiRequest } from "./api";
 
-export type PaymentStatus = "pending" | "paid";
-
-export type Payment = {
-  id: number;
-  description: string;
-  amount: number;
-  due_date: string;
-  category: string;
-  responsible: string;
-  status: PaymentStatus;
-};
-
-export type CreatePaymentData = {
-  description: string;
-  amount: number;
-  due_date: string;
-  category: string;
-  responsible: string;
-  status: PaymentStatus;
-};
+import type {
+  Payment,
+  PaymentFormData,
+} from "../types/payment";
 
 export async function getPayments(): Promise<Payment[]> {
   return apiRequest<Payment[]>("/payments");
 }
 
 export async function createPayment(
-  payment: CreatePaymentData
+  payment: PaymentFormData,
 ): Promise<Payment> {
   return apiRequest<Payment>("/payments", {
     method: "POST",
@@ -36,16 +20,24 @@ export async function createPayment(
 
 export async function updatePayment(
   id: number,
-  payment: CreatePaymentData
+  payment: PaymentFormData,
 ): Promise<Payment> {
-  return apiRequest<Payment>(`/payments/${id}`, {
-    method: "PUT",
-    body: payment,
-  });
+  return apiRequest<Payment>(
+    `/payments/${id}`,
+    {
+      method: "PUT",
+      body: payment,
+    },
+  );
 }
 
-export async function deletePayment(id: number): Promise<void> {
-  await apiRequest<void>(`/payments/${id}`, {
-    method: "DELETE",
-  });
+export async function deletePayment(
+  id: number,
+): Promise<void> {
+  await apiRequest<void>(
+    `/payments/${id}`,
+    {
+      method: "DELETE",
+    },
+  );
 }
