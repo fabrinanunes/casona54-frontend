@@ -31,7 +31,11 @@ import {
 
 import "./Dashboard.css";
 
-export default function Dashboard() {
+type DashboardProps = {
+  onLogout: () => Promise<void>;
+};
+
+export default function Dashboard({ onLogout }: DashboardProps) {
   const { payments, isLoading, error } = usePayments();
 
   const [filters, setFilters] = useState<PaymentFilters>({
@@ -88,6 +92,10 @@ export default function Dashboard() {
           <h1>Nosso Lar</h1>
           <p>Controle financeiro da casa</p>
         </div>
+
+        <button type="button" className="dashboard__logout" onClick={onLogout}>
+          Sair
+        </button>
       </header>
 
       {error && (
